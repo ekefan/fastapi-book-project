@@ -8,10 +8,19 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-        - uses: actions/checkout@v3
-        - uses: JorgeLNJunior/render-deploy@v1.4.4
-          with:
-            service_id: ${{ secrets.RENDER_SERVICE_ID }}
-            api_key: ${{ secrets.RENDER_API_KEY }}
-            wait_deploy: true 
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy
+        if: github.ref == 'refs/heads/main'
+        env:
+          DEPLOY_URL: ${{ secrets.RENDER_DEPLOY_HOOK }}
+          PORT: 8000
+        run: |
+          if [[ -z "$DEPLOY_URL" ]]; then
+            echo "Error: DEPLOY_URL is not set. Check your GitHub Secrets."
+            exit 1
+          fi
+          curl -X POST "$DEPLOY_URL"
