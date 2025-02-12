@@ -1,19 +1,59 @@
-name: deploy ci
+# name: deploy ci
+# on:
+#   pull_request:
+#   push:
+#     branches:
+#       - main
+
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v3
+#       - name: Deploy
+#         # Only run this step if the branch is main
+#         if: github.ref == 'refs/heads/main'
+#         env:
+#           deploy_url: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+#         run: |
+#           curl "$deploy_url"\
+
+name: Deploy API
+
 on:
-  pull_request:
   push:
     branches:
       - main
+    paths:
+      - '**.py'
+      - 'requirements.txt'
+      - '.github/workflows/**'
 
 jobs:
   deploy:
+    name: Deploy Application
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
-      - name: Deploy
-        # Only run this step if the branch is main
-        if: github.ref == 'refs/heads/main'
-        env:
-          deploy_url: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Configure SSH
         run: |
-          curl "$deploy_url"
+          mkdir -p ~/.ssh/
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          echo -e "Host server\n\tHostName ${{ secrets.SERVER_IP }}\n\tUser ${{ secrets.SERVER_USER }}\n\tIdentityFile ~/.ssh/deploy_key\n\tStrictHostKeyChecking no" > ~/.ssh/config
+
+      - name: Deploy to Server
+        run: |
+          ssh server '
+            cd fastapi-book-project
+            git fetch origin main
+            git reset --hard origin/main
+            source env/bin/activate
+            pip install --no-cache-dir -r requirements.txt
+            sudo supervisorctl restart uvicorn:fastapi-uvicorn-0 
+          '
