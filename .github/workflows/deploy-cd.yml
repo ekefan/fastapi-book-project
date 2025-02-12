@@ -23,7 +23,7 @@ jobs:
       - name: Create CodeDeploy Deployment
         run: |
           aws deploy create-deployment \
-            --aws-region: us-north-1
+            --aws-region: us-north-1 \
             --application-name application-name \
             --deployment-group-name AppDeploymentGroupName \
             --deployment-config-name CodeDeployDefault.OneAtATime \
