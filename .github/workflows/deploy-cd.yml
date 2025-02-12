@@ -30,7 +30,6 @@
 # .github/workflows/ci.yml
 
 on:
-  pull_request:
   push:
     branches: [main]
 
