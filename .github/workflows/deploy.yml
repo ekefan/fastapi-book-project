@@ -1,62 +1,38 @@
-# name: deploy ci
-# on:
-#   pull_request:
-#   push:
-#     branches:
-#       - main
-
-# jobs:
-#   deploy:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - uses: actions/checkout@v3
-#       - name: Deploy
-#         # Only run this step if the branch is main
-#         if: github.ref == 'refs/heads/main'
-#         env:
-#           deploy_url: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
-#         run: |
-#           aws deploy create-deployment \
-#             --application-name application-name \
-#             --deployment-group-name AppDeploymentGroupName \
-#             --deployment-config-name CodeDeployDefault.OneAtATime \
-#             --github-location repository=${{ github.repository }},commitId=${{ github.sha }}
-# .github/workflows/ci.yml
-name: deploy
+name: Deploy FastAPI to EC2
 on:
   push:
     branches:
       - main
-    paths:
-      - '**.py'
-      - 'requirements.txt'
-      - '.github/workflows/**'
-
+    paths-ignore:
+      - '**/README.md'
 jobs:
   deploy:
-    name: Deploy Application
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Configure SSH
-        run: |
-          mkdir -p ~/.ssh/
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          echo -e "Host server\n\tHostName ${{ secrets.SERVER_IP }}\n\tUser ${{ secrets.SERVER_USER }}\n\tIdentityFile ~/.ssh/deploy_key\n\tStrictHostKeyChecking no" > ~/.ssh/config
-
-      - name: Deploy to Server
-        run: |
-          ssh server '
-            cd fastapi-book-project
-            git fetch origin main
-            git reset --hard origin/main
-            source venv/bin/activate
-            pip install --no-cache-dir -r requirements.txt
-            sudo systemctl restart fastapi 
-          '
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.12"
+    - name: Install Dependencies
+      run: |
+        pip install -r requirements.txt
+    - name: Run Tests
+      run: |
+        pytest
+    - name: Deploy to EC2
+      env:
+        PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+        HOST: ${{ secrets.EC2_HOST }}
+        USER: ${{ secrets.EC2_USER }}
+      run: |
+        echo "$PRIVATE_KEY" > private_key.pem
+        chmod 600 private_key.pem
+        ssh -o StrictHostKeyChecking=no -i private_key.pem $USER@$HOST << 'EOF'
+          cd /home/ubuntu/hng12-stage2-fastapi-book-project
+          git pull origin main
+          source venv/bin/activate
+          pip install -r requirements.txt
+          sudo systemctl restart fastapi.service
+        EOF
