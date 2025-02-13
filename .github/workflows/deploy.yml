@@ -30,7 +30,8 @@ jobs:
         echo "$PRIVATE_KEY" > private_key.pem
         chmod 600 private_key.pem
         ssh -o StrictHostKeyChecking=no -i private_key.pem $USER@$HOST << 'EOF'
-          cd /home/ubuntu/hng12-stage2-fastapi-book-project
+          ls
+          cd fastapi-book-project
           git pull origin main
           source venv/bin/activate
           pip install -r requirements.txt
