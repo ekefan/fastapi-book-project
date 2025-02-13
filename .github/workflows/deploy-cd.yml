@@ -53,7 +53,7 @@ jobs:
             cd fastapi-book-project
             git fetch origin main
             git reset --hard origin/main
-            source env/bin/activate
+            source venv/bin/activate
             pip install --no-cache-dir -r requirements.txt
-            sudo supervisorctl restart uvicorn:fastapi-uvicorn-0 
+            sudo systemctl restart fastapi 
           '
