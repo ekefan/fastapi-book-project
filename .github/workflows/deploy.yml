@@ -22,7 +22,7 @@
 #             --deployment-config-name CodeDeployDefault.OneAtATime \
 #             --github-location repository=${{ github.repository }},commitId=${{ github.sha }}
 # .github/workflows/ci.yml
-name: deploy-ci
+name: deploy
 on:
   push:
     branches:
